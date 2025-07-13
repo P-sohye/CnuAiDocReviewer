@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './LoginPage.module.css';
 
 const LoginPage = () => {
-    const backgroundImageUrl = `${process.env.PUBLIC_URL}/images/cnu.jpg`;
+    const backgroundImageUrl = `${process.env.PUBLIC_URL}/images/cnu.png`;
 
     return (
         <div
