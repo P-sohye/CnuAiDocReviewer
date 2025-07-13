@@ -1,0 +1,58 @@
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.mainContent {
+    flex: 1;
+    padding: 40px;
+    background-color: #7ba4de;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.profileCard {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+    width: 300px;
+}
+
+.logo {
+    width: 60px;
+    margin-bottom: 10px;
+}
+
+.name {
+    font-weight: bold;
+    font-size: 20px;
+}
+
+.info {
+    font-size: 14px;
+    color: #666;
+}
+
+.chatbotSection {
+    text-align: center;
+    margin-top: 40px;
+}
+
+.guideText {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.chatbotButton {
+    padding: 10px 20px;
+    background-color: #004080;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+}
