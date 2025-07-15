@@ -45,44 +45,47 @@ const StudentMain = () => {
 
     return (
         <div className={styles.mainContent}>
-            {/* 왼쪽: 프로필 및 서류 리스트 */}
-            <section className={styles.profileCard}>
-                <div className={styles.headerRow}>
-                    <img src="/images/logo.png" alt="프로필" className={styles.logo} />
-                    <div className={styles.userInfoBox}>
-                        <div className={styles.name}>홍길동</div>
-                        <div className={styles.info}>화학과(재학생) | 20100000</div>
+            {/* ✅ 프로필 + 챗봇을 하나의 래퍼로 묶음 */}
+            <div className={styles.contentWrapper}>
+                {/* 프로필 카드 */}
+                <section className={styles.profileCard}>
+                    <div className={styles.headerRow}>
+                        <img src="/images/logo.png" alt="프로필" className={styles.logo} />
+                        <div className={styles.userInfoBox}>
+                            <div className={styles.name}>홍길동</div>
+                            <div className={styles.info}>화학과(재학생) | 20100000</div>
+                        </div>
                     </div>
-                </div>
 
-                <div className={styles.sectionTitle}>제출 지원 서류 목록</div>
-                <div className={styles.innerContent}>
-                    {renderDocumentList()}
-                </div>
-            </section>
-
-            {/* 오른쪽: 챗봇 박스 */}
-            <section className={styles.chatbotSection}>
-                <div className={styles.chatbotContainer}>
-                    <div className={styles.chatbotText}>
-                        행정 지원 시스템은<br />
-                        <strong>CNU 챗봇</strong>과 함께합니다 !
+                    <div className={styles.sectionTitle}>제출 지원 서류 목록</div>
+                    <div className={styles.innerContent}>
+                        {renderDocumentList()}
                     </div>
-                    <img
-                        src="/images/mascot.png"
-                        alt="챗봇 마스코트"
-                        className={styles.chatbotImage}
-                    />
-                    <button
-                        className={styles.chatbotButton}
-                        onClick={() => setIsChatbotOpen(true)}
-                    >
-                        CNU 챗봇
-                    </button>
-                </div>
-            </section>
+                </section>
 
-            {/* 챗봇 창 (오픈 시 표시) */}
+                {/* 챗봇 섹션 */}
+                <section className={styles.chatbotSection}>
+                    <div className={styles.chatbotContainer}>
+                        <div className={styles.chatbotText}>
+                            행정 지원 시스템은<br />
+                            <strong>CNU 챗봇</strong>과 함께합니다 !
+                        </div>
+                        <img
+                            src="/images/mascot.png"
+                            alt="챗봇 마스코트"
+                            className={styles.chatbotImage}
+                        />
+                        <button
+                            className={styles.chatbotButton}
+                            onClick={() => setIsChatbotOpen(true)}
+                        >
+                            CNU 챗봇
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            {/* 챗봇 팝업 */}
             {isChatbotOpen && <Chatbot onClose={() => setIsChatbotOpen(false)} />}
         </div>
     );
