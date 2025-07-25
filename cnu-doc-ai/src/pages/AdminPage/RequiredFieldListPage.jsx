@@ -69,9 +69,10 @@ const RequiredFieldListPage = () => {
     }, [category]);
 
 
-    const handlePreviewToggle = (index) => {
-        setPreviewIndex(prev => prev === index ? null : index);
+    const handlePreviewToggle = (id) => {
+        setPreviewIndex(prev => prev === id ? null : id);
     };
+
 
     const handleManageClick = (documentId) => {
         navigate(`/admin/required/edit/${documentId}?category=${category}`);
@@ -103,19 +104,20 @@ const RequiredFieldListPage = () => {
                 </tr>
                 </thead>
                 <tbody>
-                {documents.map((doc, index) => (
+                {paged.map((doc) => (
                     <tr key={doc.id}>
                         <td>{doc.name}</td>
                         <td className={styles.previewCell}>
-                            <button onClick={() => handlePreviewToggle(index)} className={styles.viewBtn}>보기</button>
-                            {previewIndex === index && (
+                            <button onClick={() => handlePreviewToggle(doc.id)} className={styles.viewBtn}>보기</button>
+                            {previewIndex === doc.id && (
                                 <div className={styles.tooltip}>
                                     {doc.requiredFields.length > 0 ? (
-                                        <ul>
+                                        <div>
                                             {doc.requiredFields.map((field, i) => (
-                                                <li key={i}>- {field}</li>
+                                                <div key={i}>- {field}</div>
                                             ))}
-                                        </ul>
+                                        </div>
+
                                     ) : <div>설정된 항목 없음</div>}
                                 </div>
                             )}
@@ -126,6 +128,7 @@ const RequiredFieldListPage = () => {
                     </tr>
                 ))}
                 </tbody>
+
             </table>
 
                 <div className={styles.pagination}>
