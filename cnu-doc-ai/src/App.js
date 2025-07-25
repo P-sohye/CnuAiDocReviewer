@@ -8,6 +8,7 @@ import AdminMain from './pages/AdminPage/AdminMain';
 import SubmissionPage from './pages/AdminPage/SubmissionPage';
 import SubmissionDetailPage from './pages/AdminPage/SubmissionDetailPage';
 import DeadlineManagePage from "./pages/AdminPage/DeadlineManagePage";
+import RequiredFieldListPage from "./pages/AdminPage/RequiredFieldListPage";
 
 function App() {
     return (
@@ -29,7 +30,7 @@ function App() {
                         <Route path="/admin/submissions" element={<SubmissionPage/>}/>
                         <Route path="/submission/detail/:id" element={<SubmissionDetailPage/>}/>
                         <Route path="/admin/deadlines" element={<DeadlineManagePage />} />
-
+                        <Route path="/admin/required" element={<RequiredFieldListPage />} />
                     </Route>
                 </Routes>
             </div>
