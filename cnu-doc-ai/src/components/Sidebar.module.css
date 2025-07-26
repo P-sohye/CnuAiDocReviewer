@@ -3,8 +3,10 @@
     background-color: #1c1f22;
     color: white;
     padding: 20px;
-    height: 100vh;
+    margin: 0;
+    /*height: 100vh;*/
     box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .title {

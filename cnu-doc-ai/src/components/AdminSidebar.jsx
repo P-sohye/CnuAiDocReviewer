@@ -46,11 +46,13 @@ const AdminSidebar = () => {
 
             <div className={styles.title}>서류 유형 관리</div>
             <hr className={styles.divider} />
+
+            <div className={styles.subtitle}>서류 관리</div>
+            <ul>{renderMenuItems('required')}</ul>
+
             <div className={styles.subtitle}>마감일 관리</div>
             <ul>{renderMenuItems('deadlines')}</ul>
 
-            <div className={styles.subtitle}>필수 항목 관리</div>
-            <ul>{renderMenuItems('required')}</ul>
         </div>
     );
 };

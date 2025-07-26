@@ -81,7 +81,7 @@ const RequiredFieldListPage = () => {
     return (
         <div className={styles.page}>
             <div className={styles.documentSection}>
-                <h2 className={styles.pageTitle}>서류 유형 관리 ( 필수 항목 관리 )</h2>
+                <h2 className={styles.pageTitle}>서류 유형 관리 ( 서류 관리 )</h2>
                 <h3 className={styles.selectedDept}>▶ {selectedDept}</h3>
 
                 <div className={styles.searchBox}>
@@ -100,7 +100,7 @@ const RequiredFieldListPage = () => {
                 <tr>
                     <th>서류명</th>
                     <th>현재 설정된 필수 항목</th>
-                    <th>필수 항목 관리</th>
+                    <th>서류 관리</th>
                 </tr>
                 </thead>
                 <tbody>
