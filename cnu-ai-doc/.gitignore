@@ -1,0 +1,9 @@
+# IDE 관련 설정
+.idea/
+*.iml
+
+# OS별 불필요 파일
+.DS_Store
+
+# 환경 설정 파일
+.env*
