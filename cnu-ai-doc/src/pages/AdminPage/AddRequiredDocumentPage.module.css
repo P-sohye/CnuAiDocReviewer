@@ -5,12 +5,13 @@
     margin: 0 auto;
 }
 
-h2 {
+.page h2 {
     font-size: 22px;
     font-weight: 700;
     margin-bottom: 30px;
     color: #222;
 }
+
 
 .formGroup {
     margin-bottom: 25px;
@@ -23,8 +24,8 @@ h2 {
     font-size: 16px;
 }
 
-input[type="text"] {
-    width: 700PX;
+.page input[type="text"] {
+    width: 700px;
     padding: 10px 12px;
     border: 1px solid #ccc;
     border-radius: 6px;

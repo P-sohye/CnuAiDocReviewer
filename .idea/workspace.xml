@@ -4,33 +4,33 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="887301ec-2a25-4b0d-b5f7-21416a3d64be" name="변경" comment="#8 서류 필수 항목 관리 페이지 ui 8.5">
-      <change afterPath="$PROJECT_DIR$/cnu-ai-doc/src/hooks/useDepartments.js" afterDir="false" />
+    <list default="true" id="887301ec-2a25-4b0d-b5f7-21416a3d64be" name="변경" comment="#9서류 유형 관리&#10;학생 메인 연동, 서류 다운">
+      <change afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/.eslintcache" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/.eslintcache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/0.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/0.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/11.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/11.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/12.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/12.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/13.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/13.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/14.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/14.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/15.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/15.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/2.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/2.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/3.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/3.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/4.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/4.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/5.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/5.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/6.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/6.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/7.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/7.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/8.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/8.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/9.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/9.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/index.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/index.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/index.pack.old" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/index.pack.old" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/src/pages/AdminPage/AddRequiredDocumentPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/src/pages/AdminPage/AddRequiredDocumentPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/src/pages/AdminPage/AddRequiredDocumentPage.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/src/pages/AdminPage/AddRequiredDocumentPage.module.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CnuAiDocReviewer.iml" beforeDir="false" afterPath="$PROJECT_DIR$/CnuAiDocReviewer.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/public/robots.txt" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/public/robots.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uploads/.gitkeep" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <projects_view>
+          <tree_state>
+            <expand />
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -43,7 +43,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="feature/admin/deadlinemanage" />
+        <entry key="$PROJECT_DIR$" value="backup/before-rollback-20250812" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -54,12 +54,12 @@
     &quot;assignee&quot;: &quot;P-sohye&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/P-sohye/CnuAiDocReviewer.git&quot;,
-    &quot;accountId&quot;: &quot;15eab49a-7062-4fa6-8c32-851037b16001&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/P-sohye/CnuAiDocReviewer-Frontend.git",
+    "accountId": "15eab49a-7062-4fa6-8c32-851037b16001"
   }
-}</component>
+}]]></component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -71,34 +71,36 @@
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="showLibraryContents" value="true" />
+    <option name="showVisibilityIcons" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/admin/requiredfieldList&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/readioBackServer&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;모듈&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.general&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\sohye\\AppData\\Local\\JetBrains\\IntelliJ IDEA 2024.3.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "feature/admin/requiredfieldList",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/CnuAiDocReviewer",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "모듈",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "preferences.keymap",
+    "ts.external.directory.path": "C:\\Users\\sohye\\AppData\\Local\\JetBrains\\IntelliJ IDEA 2024.3.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\CnuAiDocReviewer\cnu-ai-doc\public\images" />
       <recent name="C:\CnuAiDocReviewer\cnu-ai-doc\src\hooks" />
       <recent name="C:\CnuAiDocReviewer\cnu-doc-ai\public\images" />
       <recent name="C:\CnuAiDocReviewer\cnu-doc-ai\src\pages\AdminPage" />
       <recent name="C:\CnuAiDocReviewer\cnu-doc-ai\src\pages\AdminPage\AdminMain" />
-      <recent name="C:\CnuAiDocReviewer\cnu-doc-ai\src\components" />
     </key>
   </component>
   <component name="SharedIndexes">
@@ -110,6 +112,9 @@
     </attachedChunks>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="애플리케이션 수준" UseSingleDictionary="true" transferred="true" />
+  <component name="SvnConfiguration">
+    <configuration>C:\Users\sohye\AppData\Roaming\Subversion</configuration>
+  </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="디폴트 작업">
       <changelist id="887301ec-2a25-4b0d-b5f7-21416a3d64be" name="변경" comment="" />
@@ -135,6 +140,7 @@
       <workItem from="1754054103153" duration="18139000" />
       <workItem from="1754620192911" duration="4556000" />
       <workItem from="1754814373780" duration="12346000" />
+      <workItem from="1754929102133" duration="4171000" />
     </task>
     <task id="LOCAL-00001" summary="#3로그인 후 메인페이지 UI">
       <option name="closed" value="true" />
@@ -251,6 +257,7 @@
     <MESSAGE value="2025.08.01 폴더 정리" />
     <MESSAGE value="#3 로그인후 학생 메인 정보 연동 2025.08.01" />
     <MESSAGE value="#8 서류 필수 항목 관리 페이지 ui 8.5" />
-    <option name="LAST_COMMIT_MESSAGE" value="#8 서류 필수 항목 관리 페이지 ui 8.5" />
+    <MESSAGE value="#9서류 유형 관리&#10;학생 메인 연동, 서류 다운" />
+    <option name="LAST_COMMIT_MESSAGE" value="#9서류 유형 관리&#10;학생 메인 연동, 서류 다운" />
   </component>
 </project>

@@ -1,7 +1,0 @@
-﻿node_modules/
-cnu-ai-doc/node_modules/
-**/.cache/
-.eslintcache
-.idea/
-uploads/*
-!uploads/.gitkeep
