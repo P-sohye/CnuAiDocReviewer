@@ -4,21 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="887301ec-2a25-4b0d-b5f7-21416a3d64be" name="변경" comment="#3 로그인후 학생 메인 정보 연동 2025.08.01">
-      <change afterPath="$PROJECT_DIR$/cnu-ai-doc/src/pages/AdminPage/AddRequiredDocumentPage.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cnu-ai-doc/src/pages/AdminPage/AddRequiredDocumentPage.module.css" afterDir="false" />
+    <list default="true" id="887301ec-2a25-4b0d-b5f7-21416a3d64be" name="변경" comment="#8 서류 필수 항목 관리 페이지 ui 8.5">
+      <change afterPath="$PROJECT_DIR$/cnu-ai-doc/src/hooks/useDepartments.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/.eslintcache" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/.eslintcache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/10.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/10.pack" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/0.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/0.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/11.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/11.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/12.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/12.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/13.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/13.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/14.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/14.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/15.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/15.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/16.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/16.pack" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/17.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/17.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/2.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/2.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/3.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/3.pack" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/4.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/4.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/5.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/5.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/6.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/6.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/7.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/7.pack" afterDir="false" />
@@ -26,6 +24,8 @@
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/9.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/9.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/index.pack" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/index.pack" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/index.pack.old" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/node_modules/.cache/default-development/index.pack.old" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/src/pages/AdminPage/AddRequiredDocumentPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/src/pages/AdminPage/AddRequiredDocumentPage.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cnu-ai-doc/src/pages/AdminPage/AddRequiredDocumentPage.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/cnu-ai-doc/src/pages/AdminPage/AddRequiredDocumentPage.module.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -94,6 +94,7 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\CnuAiDocReviewer\cnu-ai-doc\src\hooks" />
       <recent name="C:\CnuAiDocReviewer\cnu-doc-ai\public\images" />
       <recent name="C:\CnuAiDocReviewer\cnu-doc-ai\src\pages\AdminPage" />
       <recent name="C:\CnuAiDocReviewer\cnu-doc-ai\src\pages\AdminPage\AdminMain" />
@@ -131,7 +132,9 @@
       <workItem from="1753859944733" duration="1902000" />
       <workItem from="1753873743676" duration="1689000" />
       <workItem from="1753938391086" duration="2765000" />
-      <workItem from="1754054103153" duration="14354000" />
+      <workItem from="1754054103153" duration="18139000" />
+      <workItem from="1754620192911" duration="4556000" />
+      <workItem from="1754814373780" duration="12346000" />
     </task>
     <task id="LOCAL-00001" summary="#3로그인 후 메인페이지 UI">
       <option name="closed" value="true" />
@@ -213,7 +216,15 @@
       <option name="project" value="LOCAL" />
       <updated>1754063362993</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="#8 서류 필수 항목 관리 페이지 ui 8.5">
+      <option name="closed" value="true" />
+      <created>1754366223106</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1754366223106</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -239,6 +250,7 @@
     <MESSAGE value="#8 관리자 서류 유형 관리 ( 필수 항목 관리 )&#10;2025.07.26" />
     <MESSAGE value="2025.08.01 폴더 정리" />
     <MESSAGE value="#3 로그인후 학생 메인 정보 연동 2025.08.01" />
-    <option name="LAST_COMMIT_MESSAGE" value="#3 로그인후 학생 메인 정보 연동 2025.08.01" />
+    <MESSAGE value="#8 서류 필수 항목 관리 페이지 ui 8.5" />
+    <option name="LAST_COMMIT_MESSAGE" value="#8 서류 필수 항목 관리 페이지 ui 8.5" />
   </component>
 </project>
