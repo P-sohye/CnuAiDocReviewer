@@ -13,10 +13,9 @@ const AdminMain = () => {
     }) + ' 기준';
 
     const submissionStatus = [
-        { department: '학적 | 학사지원과', count: 15 },
-        { department: '등록 | 재무과', count: 35 },
-        { department: '수업 | 학사지원과', count: 15 },
-        { department: '학생 | 학생과', count: 15 },
+        { department:  '학생 | 학생과', count: 15 },
+        { department: '수업 | 학사지원과', count: 35 },
+        { department:  '국제 | 국제교류본부', count: 15 }
     ];
 
     const submissionDeadlines = [

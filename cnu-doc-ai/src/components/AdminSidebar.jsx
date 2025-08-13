@@ -1,40 +1,44 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styles from './AdminSidebar.module.css';
+import useDepartments, { formatDeptLabel } from '../hooks/useDepartments';
+
 
 const AdminSidebar = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { departments, loading } = useDepartments();
 
     const searchParams = new URLSearchParams(location.search);
-    const currentCategory = searchParams.get('category');
+    // 쿼리가 없을 때 기본값은 첫 부서로
+    const currentCategory = searchParams.get('category')
+        || (departments[0]?.id?.toString() ?? '');
     const pathType = location.pathname.split('/')[2];
 
-    const onMenuClick = (type, category) => {
-        navigate(`/admin/${type}?category=${category}`);
+    const onMenuClick = (type, deptId) => {
+        navigate(`/admin/${type}?category=${deptId}`);
     };
 
     const renderMenuItems = (type) => {
-        const items = [
-            { label: '학적 | 학사지원과', key: 'academic' },
-            { label: '등록 | 재무과', key: 'finance' },
-            { label: '수업 | 학사지원과', key: 'class' },
-            { label: '학생 | 학생과', key: 'student' },
-        ];
-
-        return items.map(item => {
-            const isActive = type === pathType && item.key === currentCategory;
-
-            return (
-                <li
-                    key={`${type}-${item.key}`}
-                    onClick={() => onMenuClick(type, item.key)}
-                    className={`${styles.menuItem} ${isActive ? styles.active : ''}`}
-                >
-                    ▶ {item.label}
-                </li>
-            );
-        });
+        if (loading) return <ul><li className={styles.menuItem}>로딩...</li></ul>;
+        return (
+            <ul>
+                {departments.map(dept => {
+                    const key = String(dept.id);
+                    const isActive = type === pathType && key === currentCategory;
+                    return (
+                        <li
+                            key={`${type}-${key}`}
+                            onClick={() => onMenuClick(type, key)}
+                            className={`${styles.menuItem} ${isActive ? styles.active : ''}`}
+                        >
+                            {/* 전화번호 제거, 원하는 포맷으로 */}
+                            ▶ {formatDeptLabel(dept)}
+                        </li>
+                    );
+                })}
+            </ul>
+        );
     };
 
     return (
@@ -46,11 +50,13 @@ const AdminSidebar = () => {
 
             <div className={styles.title}>서류 유형 관리</div>
             <hr className={styles.divider} />
+
+            <div className={styles.subtitle}>서류 관리</div>
+            <ul>{renderMenuItems('required')}</ul>
+
             <div className={styles.subtitle}>마감일 관리</div>
             <ul>{renderMenuItems('deadlines')}</ul>
 
-            <div className={styles.subtitle}>필수 항목 관리</div>
-            <ul>{renderMenuItems('required')}</ul>
         </div>
     );
 };

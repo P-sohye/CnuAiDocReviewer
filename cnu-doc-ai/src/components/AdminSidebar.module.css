@@ -13,14 +13,14 @@
     min-height: 100%;
 }
 .title {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     text-align: center;
     margin: 12px 0;
 }
 
 .subtitle {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
     /*text-align: center;*/
     margin: 20px 0;
@@ -38,7 +38,7 @@
 }
 
 .sidebar li {
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     cursor: pointer;
 }
 .menuItem {

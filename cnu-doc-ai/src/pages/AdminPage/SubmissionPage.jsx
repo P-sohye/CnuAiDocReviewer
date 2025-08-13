@@ -13,10 +13,9 @@ const dummyData = [...Array(50)].map((_, idx) => ({
 }));
 
 const categoryMap = {
-    academic: '학적 | 학사지원과',
-    finance: '등록 | 재무과',
+    global: '국제 | 국제교류본부',
     class: '수업 | 학사지원과',
-    student: '학생 | 학생과',
+    student: '학생 | 학생과'
 };
 
 const SubmissionPage = () => {

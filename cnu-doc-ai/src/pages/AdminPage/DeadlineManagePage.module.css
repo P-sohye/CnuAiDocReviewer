@@ -35,22 +35,22 @@
 .table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 20px;
+    font-size: 14px;
     table-layout: fixed;
 }
 
 .table th, .table td {
-    padding:8px;
+    padding: 4px;
     border-bottom: 1px solid #ddd;
     text-align: left;
     word-break: break-word;
     vertical-align: middle;
 }
 
-.table th {
-    font-weight: 600;
-    font-size: 15px;
-}
+/*.table th {*/
+/*    font-weight: 600;*/
+
+/*}*/
 
 .deadlineCell {
     max-width: 100%;
@@ -70,7 +70,7 @@
     flex: 1 1 140px;
     max-width: 180px;
     min-width: 120px;
-    padding: 5px;
+    /*padding: 5px;*/
     font-size: 14px;
     box-sizing: border-box;
 }
