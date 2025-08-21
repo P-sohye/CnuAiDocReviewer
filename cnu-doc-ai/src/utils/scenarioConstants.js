@@ -77,20 +77,19 @@ export const SCENARIOS = {
         message:
             "지속적인 오류가 발생하고 있습니다.\n담당자에게 문의해주세요.\n이메일:  \n전화번호: ",
     },
-
+    BOT_ANALYSIS_LOG: (text) => ({
+        message: `\n[자동 검토 로그]\n${text || '(로그 없음)'}`
+    }),
     // ▶ 챗봇(봇) 1차 검토 결과
     BOT_FEEDBACK_PASS: {
-        message: "자동 검토를 통과했습니다. 관리자 검토 대기 중입니다.",
-        // 상태: READY_FOR_ADMIN 또는 UNDER_ADMIN_REVIEW 로 곧 전이
+        message: "자동 검토 통과, 관리자 검토 대기",
     },
-
-    BOT_FEEDBACK_FAIL: (failedItems) => ({
-        message:
-            "다음 항목에서 문제가 발견되었습니다:\n" +
-            failedItems.map(i => `- ${i.label}: ${i.message}`).join("\n"),
-        options: ["수정 후 다시 제출"],
-        // API: GET /api/submissions/{submissionId}/review-result (봇 검증 상세)
-    }),
+    BOT_FEEDBACK_FAIL: (failedItems) => {
+        const reason = (failedItems ?? [])
+            .map(i => `${i.label}: ${i.message}`)
+            .join("; ");
+        return { message: `자동 검토 실패: ${reason || "사유 미기재"}` };
+    },
 
     // ▶ 반려 후 재제출(리비전 없이 덮어쓰기)
     RESUBMIT_PROMPT: {

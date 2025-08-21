@@ -1,315 +1,358 @@
-// src/hooks/useChatScenario.js
-import { useState, useRef, useEffect } from "react";
-import api from "../api/api";
+// hooks/useChatScenario.js
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+    getStudentDepartments,
+    getDocTypesByDepartmentPublic,
+    getRequiredFields,
+    getDeadline,
+    createSubmission,
+    getSubmissionSummary,
+    getBotReviewResult,
+    listMySubmissions,
+    pickErrorMessage,
+} from "../api/api";
 import { SCENARIOS, STATUS } from "../utils/scenarioConstants";
 
+/** 화면 라벨 */
+const statusLabel = {
+    DRAFT: "임시저장",
+    BOT_REVIEW: "챗봇 검사",
+    SUBMITTED: "관리자 대기",
+    UNDER_REVIEW: "관리자 검토 중",
+    NEEDS_FIX: "보정 요청",
+    APPROVED: "승인 완료",
+    REJECTED: "반려 처리",
+};
+
+/** 공통 유틸 */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const formatDate = (isoStr) => {
+    if (!isoStr) return "";
+    const d = new Date(isoStr);
+    if (Number.isNaN(d.valueOf())) return isoStr;
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+};
+/** 정규화 */
+const normDept = (d) => ({ id: d?.id, name: d?.name, leftLabel: null });
+const normDocType = (t) => ({ id: t?.docTypeId, name: t?.title });
+const normRequiredField = (it, idx) => ({
+    label:
+        typeof it === "string"
+            ? it
+            : it?.label ?? it?.name ?? it?.title ?? `필수 항목 ${idx + 1}`,
+    required: true,
+});
+const isExpired = (deadlineStr) => {
+    if (!deadlineStr) return false;
+    const now = new Date();
+    const d = new Date(deadlineStr);
+    return Number.isFinite(d.valueOf()) && d < now;
+};
+
+/** OCR 결과 사유 우선순위 추출 */
+async function fetchReviewReasons(submissionId) {
+    try {
+        const review = await getBotReviewResult(submissionId);
+        if (Array.isArray(review?.findings) && review.findings.length) {
+            return review.findings.map((f) => `${f.label}: ${f.message}`);
+        }
+        if (review?.reason) return [review.reason];
+        if (Array.isArray(review?.debugTexts) && review.debugTexts.length) {
+            return review.debugTexts.slice(0, 5);
+        }
+    } catch (_) {
+        /* ignore */
+    }
+    return [];
+}
+
+/** 상태 폴링: BOT_REVIEW는 완료 아님! */
+async function pollUntilDone(getSummaryFn, submissionId, opts) {
+    const {
+        initialDelayMs = 5000,
+        stepMs = 5000,
+        maxDelayMs = 30000,
+        timeoutMs = 8 * 60 * 1000, // 8분
+    } = opts || {};
+
+    const DONE = new Set([
+        STATUS.NEEDS_FIX,
+        STATUS.REJECTED,
+        STATUS.SUBMITTED,
+        STATUS.UNDER_REVIEW,
+        STATUS.APPROVED,
+    ]); // ❌ BOT_REVIEW 제외
+
+    let delay = initialDelayMs;
+    let elapsed = 0;
+    let summary = await getSummaryFn(submissionId);
+
+    // 이미 완료 상태면 즉시 반환
+    if (summary?.status && DONE.has(summary.status)) return summary;
+
+    while (elapsed < timeoutMs) {
+        await sleep(delay);
+        elapsed += delay;
+
+        // 점차 대기 증가 (최대 maxDelayMs)
+        delay = Math.min(delay + stepMs, maxDelayMs);
+
+        summary = await getSummaryFn(submissionId);
+        const st = summary?.status;
+
+        // 완료 상태면 탈출
+        if (DONE.has(st)) return summary;
+
+        // BOT_REVIEW면 계속 대기 (타임아웃까지)
+    }
+
+    // 타임아웃: 마지막 상태 반환 (대개 BOT_REVIEW일 것)
+    return summary ?? null;
+}
+
 export default function useChatScenario() {
-    // 대화 히스토리
-    const [chatHistory, setChatHistory] = useState([
-        { from: "bot", message: SCENARIOS.INIT.message, options: SCENARIOS.INIT.options },
-    ]);
-    const [currentStep, setCurrentStep] = useState("INIT");
-
-    const [selected, setSelected] = useState({
-        deptId: undefined,
-        deptName: undefined,
-        docTypeId: undefined,
-        docTypeName: undefined,
-        submissionId: undefined,
-    });
-
-    const [requiredFields, setRequiredFields] = useState([]);
+    const [chatHistory, setChatHistory] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [docTypes, setDocTypes] = useState([]);
+    const [selectedDeptId, setSelectedDeptId] = useState(null);
+    const [selectedDocType, setSelectedDocType] = useState(null); // { id, name }
+    const [deadlineInfo, setDeadlineInfo] = useState(null); // {deadline:string}|null
+    const bootstrapped = useRef(false);
 
-    // 언마운트 가드
-    const aliveRef = useRef(true);
-    useEffect(() => {
-        aliveRef.current = true;
-        return () => {
-            aliveRef.current = false;
-        };
+    const pushBot = useCallback((msg) => {
+        setChatHistory((h) => [...h, { from: "bot", ...msg }]);
+    }, []);
+    const pushUser = useCallback((text) => {
+        setChatHistory((h) => [...h, { from: "user", message: text }]);
     }, []);
 
-    const appendMessage = (msg) => setChatHistory((prev) => [...prev, msg]);
-
-    // 공통 에러 메시지
-    const showServerError = (e) => {
-        const reason = e?.response?.data?.message || e?.message || "알 수 없는 오류";
-        const step = SCENARIOS.UPLOAD_FAILED(reason);
-        appendMessage({ from: "bot", message: step.message, uploadEnabled: step.uploadEnabled });
-    };
-
-    // 상태 폴링
-    const pollStatus = async (submissionId, { tries = 10, interval = 2000 } = {}) => {
-        for (let i = 0; i < tries && aliveRef.current; i++) {
-            await new Promise((r) => setTimeout(r, interval));
-            try {
-                const { data: st } = await api.get(`/api/submissions/${submissionId}`);
-                const status = st?.status;
-                if (!status) continue;
-
-                if (status === STATUS.NEEDS_FIX) {
-                    setCurrentStep("FEEDBACK");
-                    const failed = st.botFindings || st.feedback || [];
-                    const step = SCENARIOS.BOT_FEEDBACK_FAIL(failed);
-                    appendMessage({ from: "bot", message: step.message, options: step.options });
-                    return;
-                }
-
-                if (status === STATUS.SUBMITTED || status === STATUS.UNDER_REVIEW) {
-                    setCurrentStep("BOT_FEEDBACK_PASS");
-                    appendMessage({ from: "bot", message: SCENARIOS.BOT_FEEDBACK_PASS.message });
-                    return;
-                }
-            } catch {
-                // 단발성 오류 무시
-            }
-        }
-        if (aliveRef.current) {
-            appendMessage({ from: "bot", message: "검토가 지연되고 있습니다. 잠시 후 다시 확인해주세요." });
-        }
-    };
-
-    // 유저 입력 처리
-    const handleUserInput = async (userMessage) => {
-        appendMessage({ from: "user", message: userMessage });
-
-        try {
-            switch (currentStep) {
-                // 초기 진입
-                case "INIT": {
-                    if (userMessage === "서류 제출") {
-                        const { data } = await api.get("/api/departments");
-                        setDepartments(data ?? []);
-                        const step = SCENARIOS.SELECT_DEPT(data ?? []);
-                        setCurrentStep("SELECT_DEPT");
-                        appendMessage({
-                            from: "bot",
-                            message: step.message,
-                            options: step.options,
-                            searchable: step.searchable,
-                        });
-                    } else if (userMessage === "서류 제출 현황") {
-                        setCurrentStep("CHECK_STATUS");
-                        appendMessage({
-                            from: "bot",
-                            message: SCENARIOS.CHECK_STATUS.message,
-                            options: SCENARIOS.CHECK_STATUS.options,
-                            showList: true,
-                        });
-                    }
-                    break;
-                }
-
-                // 부서 선택
-                case "SELECT_DEPT": {
-                    const dept =
-                        departments.find((d) => userMessage.includes(d.name)) ||
-                        departments.find((d) => d.name === userMessage);
-
-                    if (!dept) {
-                        appendMessage({ from: "bot", message: "해당 부서를 찾지 못했어요. 다시 선택해 주세요." });
-                        break;
-                    }
-
-                    // 함수형 업데이트로 안전하게 병합
-                    setSelected((prev) => ({
-                        ...prev,
-                        deptId: dept.id,
-                        deptName: dept.name,
-                    }));
-
-                    // 부서별 서류 유형 로드
-                    const { data: types } = await api.get(`/api/departments/${dept.id}/doc-types`);
-                    setDocTypes(types ?? []);
-                    const step = SCENARIOS.SELECT_TYPE(types ?? []);
-                    setCurrentStep("SELECT_TYPE");
-                    appendMessage({
-                        from: "bot",
-                        message: step.message,
-                        options: step.options,
-                        searchable: step.searchable,
-                    });
-                    break;
-                }
-
-                // 서류 유형 선택 → 마감 확인 → 필수항목 안내
-                case "SELECT_TYPE": {
-                    const chosen =
-                        docTypes.find((t) => t.name === userMessage) ||
-                        docTypes.find((t) => userMessage.includes(t.name));
-                    if (!chosen) {
-                        appendMessage({ from: "bot", message: "해당 서류 유형을 찾지 못했어요. 다시 선택해 주세요." });
-                        break;
-                    }
-
-                    setSelected((prev) => ({
-                        ...prev,
-                        docTypeId: chosen.id,
-                        docTypeName: chosen.name,
-                    }));
-
-                    setCurrentStep("CHECK_DEADLINE");
-                    appendMessage({ from: "bot", message: SCENARIOS.CHECK_DEADLINE.message });
-
-                    // 마감 확인
-                    const { data: deadline } = await api.get(`/api/doc-types/${chosen.id}/deadline`);
-                    if (deadline?.valid) {
-                        appendMessage({
-                            from: "bot",
-                            message: SCENARIOS.DEADLINE_VALID(deadline.deadline).message,
-                        });
-
-                        // 필수항목 로드 + 업로드 프롬프트 전환
-                        const { data: reqs } = await api.get(`/api/doc-types/${chosen.id}/required-fields`);
-                        setRequiredFields(reqs ?? []);
-                        const step = SCENARIOS.FORM_AND_FILE_PROMPT(reqs ?? []);
-                        setCurrentStep("FORM_AND_FILE_PROMPT");
-                        appendMessage({
-                            from: "bot",
-                            message: step.message,
-                            uploadEnabled: step.uploadEnabled,
-                            accepts: step.accepts,
-                        });
-                    } else {
-                        setCurrentStep("DEADLINE_EXPIRED");
-                        appendMessage(SCENARIOS.DEADLINE_EXPIRED(deadline?.deadline ?? "마감"));
-                    }
-                    break;
-                }
-
-                // 봇 피드백에서 재제출로 이동
-                case "FEEDBACK": {
-                    if (userMessage === "수정 후 다시 제출" || userMessage === "파일 수정 후 다시 제출") {
-                        setCurrentStep("RESUBMIT_PROMPT");
-                        const step = SCENARIOS.RESUBMIT_PROMPT;
-                        appendMessage({
-                            from: "bot",
-                            message: step.message,
-                            uploadEnabled: true,
-                            options: step.options,
-                            accepts: step.accepts,
-                        });
-                    }
-                    break;
-                }
-
-                // 마감 만료에서 분기
-                case "DEADLINE_EXPIRED": {
-                    if (userMessage === "다른 서류 제출하기") {
-                        const { data } = await api.get("/api/departments");
-                        setDepartments(data ?? []);
-                        const step = SCENARIOS.SELECT_DEPT(data ?? []);
-                        setCurrentStep("SELECT_DEPT");
-                        appendMessage({
-                            from: "bot",
-                            message: step.message,
-                            options: step.options,
-                            searchable: step.searchable,
-                        });
-                    } else {
-                        reset();
-                    }
-                    break;
-                }
-
-                // 재제출 프롬프트에서 최종 제출 선택
-                case "RESUBMIT_PROMPT": {
-                    if (["제출", "바로 제출", "제출하기"].includes(userMessage)) {
-                        setCurrentStep("FINAL_SUBMITTING");
-                        appendMessage({ from: "bot", message: SCENARIOS.FINAL_SUBMITTING.message });
-                        appendMessage({ from: "bot", message: SCENARIOS.FINAL_SUBMITTED.message });
-                    }
-                    break;
-                }
-
-                default:
-                    break;
-            }
-        } catch (e) {
-            showServerError(e);
-        }
-    };
-
-    /**
-     * 파일 업로드
-     * - 최초 제출: POST /api/submissions
-     * - 재제출(덮어쓰기): PUT /api/submissions/{id}
-     * @param {File} file 업로드 파일
-     * @param {Object} formValues 필수항목 입력값(JSON)
-     */
-    const handleFileUpload = async (file, formValues = {}) => {
-        appendMessage({ from: "user", message: `${file.name} 파일을 업로드했습니다.` });
-
-        const processing = SCENARIOS.FILE_UPLOADED_PROCESSING;
-        setCurrentStep("FILE_UPLOADED_PROCESSING");
-        appendMessage({ from: "bot", message: processing.message, systemProcessing: processing.systemProcessing });
-
-        try {
-            const form = new FormData();
-            if (selected.docTypeId) form.append("docTypeId", selected.docTypeId);
-            form.append("fieldsJson", JSON.stringify(formValues || {}));
-            form.append("file", file);
-
-            // 최초/재제출 분기
-            let res;
-            if (currentStep === "RESUBMIT_PROMPT" && selected.submissionId) {
-                res = await api.put(`/api/submissions/${selected.submissionId}`, form);
-            } else {
-                res = await api.post("/api/submissions", form);
-            }
-
-            const data = res.data || {};
-            if (data.submissionId) {
-                setSelected((prev) => ({ ...prev, submissionId: data.submissionId }));
-            }
-
-            if (
-                data.status === STATUS.SUBMITTED ||
-                data.status === STATUS.UNDER_REVIEW
-            ) {
-                setCurrentStep("BOT_FEEDBACK_PASS");
-                appendMessage({ from: "bot", message: SCENARIOS.BOT_FEEDBACK_PASS.message });
-            } else if (data.status === STATUS.NEEDS_FIX) {
-                setCurrentStep("FEEDBACK");
-                const failed = data.feedback || data.botFindings || [];
-                const step = SCENARIOS.BOT_FEEDBACK_FAIL(failed);
-                appendMessage({ from: "bot", message: step.message, options: step.options });
-            } else if (data.status === STATUS.BOT_REVIEW) {
-                appendMessage({ from: "bot", message: "자동 검토 중입니다. 잠시 후 상태가 갱신됩니다." });
-                const sid = data.submissionId || selected.submissionId;
-                if (sid) await pollStatus(sid);
-            } else {
-                appendMessage({ from: "bot", message: "제출이 접수되었습니다." });
-            }
-        } catch (e) {
-            showServerError(e);
-        }
-    };
-
-    const reset = () => {
-        setChatHistory([{ from: "bot", message: SCENARIOS.INIT.message, options: SCENARIOS.INIT.options }]);
-        setCurrentStep("INIT");
-        setSelected({
-                       deptId: undefined,
-                       deptName: undefined,
-                       docTypeId: undefined,
-                       docTypeName: undefined,
-                       submissionId: undefined,
-                   });
-        setRequiredFields([]);
-        setDepartments([]);
+    /** ▶ 부서 선택 단계로 깔끔히 리셋 */
+    const resetToDeptSelect = useCallback(() => {
+        setSelectedDeptId(null);
+        setSelectedDocType(null);
         setDocTypes([]);
-    };
+        setDeadlineInfo(null);
 
-    return {
-        chatHistory,
-        currentStep,
-        handleUserInput,
-        handleFileUpload,
-        reset,
-        selected,
-        requiredFields,
-    };
+        pushBot(
+            SCENARIOS.SELECT_DEPT(
+                (departments || []).map((d) => ({
+                    id: d.id,
+                    name: d.name,
+                    leftLabel: d.leftLabel,
+                }))
+            )
+        );
+    }, [departments, pushBot]);
+
+    // 초기: 인트로만
+    useEffect(() => {
+        if (bootstrapped.current) return;
+        bootstrapped.current = true;
+
+        (async () => {
+            try {
+                const deptsRes = await getStudentDepartments();
+                const normDepts = (deptsRes || [])
+                    .map(normDept)
+                    .filter((d) => d.id && d.name);
+                setDepartments(normDepts);
+                pushBot({
+                    message: SCENARIOS.INIT.message,
+                    options: SCENARIOS.INIT.options,
+                });
+            } catch (e) {
+                console.error("[INIT] departments load error:", e);
+                pushBot(SCENARIOS.SERVER_ERROR);
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const handleUserInput = useCallback(
+        async (raw) => {
+            if (!raw) return;
+            const text = String(raw).trim();
+            pushUser(text);
+
+            // 공통 메뉴 처리 -------------------------------------------------
+            if (text === "서류 제출") {
+                resetToDeptSelect();
+                return;
+            }
+            if (text === "서류 제출 현황") {
+                try {
+                    const rows = await listMySubmissions({ limit: 10 });
+                    if (!rows || rows.length === 0) {
+                        pushBot({ message: "제출 이력이 없습니다." });
+                    } else {
+                        const lines = rows.map((r) => {
+                            const status = statusLabel[r.status] || r.status;
+                            return `- ${status} | ${r.title || "(제목 없음)"} | ${formatDate(
+                                r.submittedAt
+                            )}`;
+                        });
+                        pushBot({ message: `최근 제출 내역:\n${lines.join("\n")}` });
+                    }
+                } catch {
+                    pushBot({
+                        message: "제출 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+                    });
+                }
+                return;
+            }
+
+            // ▶ 추가: 마감 화면에서의 액션
+            if (text === "다른 서류 제출하기") {
+                resetToDeptSelect();
+                return;
+            }
+            if (text === "챗봇 종료하기") {
+                pushBot(SCENARIOS.END_CHATBOT);
+                return;
+            }
+
+            // 부서 선택 -----------------------------------------------------
+            const dept = (departments || []).find(
+                (d) =>
+                    d.name === text ||
+                    `${d.leftLabel ?? ""}${d.leftLabel ? "|" : ""}${d.name}` === text
+            );
+            if (dept) {
+                setSelectedDeptId(dept.id);
+                pushBot({
+                    message: `"${dept.name}" 부서 선택됨. 제출하실 서류 유형을 선택해주세요.`,
+                });
+                try {
+                    const typesRes = await getDocTypesByDepartmentPublic(dept.id);
+                    const normTypes = (typesRes || [])
+                        .map(normDocType)
+                        .filter((t) => t.id && t.name);
+                    setDocTypes(normTypes);
+                    pushBot(SCENARIOS.SELECT_TYPE(normTypes));
+                } catch (e) {
+                    console.error("[SELECT_DEPT] doc types load error:", e);
+                    pushBot(SCENARIOS.SERVER_ERROR);
+                }
+                return;
+            }
+
+            // 문서 유형 선택 -------------------------------------------------
+            const dt = (docTypes || []).find((t) => t.name === text);
+            if (dt) {
+                setSelectedDocType({ id: dt.id, name: dt.name });
+
+                // 1) 필수항목
+                let requiredFields = [];
+                try {
+                    const fields = await getRequiredFields(dt.id);
+                    requiredFields = (fields || []).map(normRequiredField);
+                } catch (e) {
+                    console.warn("[required-fields] load failed", e);
+                }
+
+                // 2) 마감일 체크
+                try {
+                    const dl = await getDeadline(dt.id); // {deadline: "..."} | string | null
+                    const deadlineStr = typeof dl === "string" ? dl : dl?.deadline;
+                    setDeadlineInfo(deadlineStr ? { deadline: deadlineStr } : null);
+
+                    if (deadlineStr && isExpired(deadlineStr)) {
+                        pushBot(SCENARIOS.DEADLINE_EXPIRED(deadlineStr));
+                        return; // 업로드 차단
+                    }
+                    if (deadlineStr) {
+                        pushBot(SCENARIOS.DEADLINE_VALID(deadlineStr));
+                    }
+                } catch (e) {
+                    console.warn("[deadline] fetch failed (무시하고 진행)", e);
+                }
+
+                // 3) 업로드 프롬프트
+                pushBot(SCENARIOS.FORM_AND_FILE_PROMPT(requiredFields));
+                return;
+            }
+        },
+        [departments, docTypes, resetToDeptSelect, pushUser, pushBot]
+    );
+
+    const handleFileUpload = useCallback(
+        async (file) => {
+            if (!file) return;
+            if (!selectedDocType?.id) {
+                pushBot({ message: "문서 유형을 먼저 선택해주세요.", uploadEnabled: false });
+                return;
+            }
+            if (deadlineInfo?.deadline && isExpired(deadlineInfo.deadline)) {
+                pushBot(SCENARIOS.DEADLINE_EXPIRED(deadlineInfo.deadline));
+                return;
+            }
+
+            // 업로드 진행
+            pushUser(`📎 ${file.name}`);
+            pushBot(SCENARIOS.FILE_UPLOADED_PROCESSING);
+
+            try {
+                const created = await createSubmission({
+                    docTypeId: selectedDocType.id,
+                    fieldsJson: "[]",
+                    file,
+                });
+
+                const submissionId = created?.submissionId;
+                if (!submissionId) throw new Error("submissionId 없음");
+
+                // 상태 폴링 (8분 타임아웃, 5s → +5s 증가, 최대 30s)
+                const summary = await pollUntilDone(getSubmissionSummary, submissionId, {
+                    initialDelayMs: 5000,
+                    stepMs: 5000,
+                    maxDelayMs: 30000,
+                    timeoutMs: 8 * 60 * 1000,
+                });
+
+                if (!summary) throw new Error("결과 조회 실패");
+
+                // 타임아웃 또는 여전히 BOT_REVIEW 인 경우
+                if (summary.status === STATUS.BOT_REVIEW) {
+                    pushBot({
+                        message:
+                            "OCR 검사 중입니다. 시간이 조금 더 걸리고 있어요.\n'서류 제출 현황'에서 결과를 확인하세요.",
+                    });
+                    return;
+                }
+
+                // 결과 문구
+                if (
+                    summary.status === STATUS.NEEDS_FIX ||
+                    summary.status === STATUS.REJECTED
+                ) {
+                    const reasonLines = await fetchReviewReasons(submissionId);
+                    const reasonText = reasonLines.length
+                        ? `\n- ${reasonLines.join("\n- ")}`
+                        : "";
+                    pushBot({
+                        message: `자동 검토 실패: ${reasonText || "(사유 미기재)"}`,
+                    });
+                } else {
+                    pushBot({ message: "자동 검토 통과, 관리자 검토 대기" });
+                }
+            } catch (err) {
+                const msg = pickErrorMessage(err, "업로드에 실패했습니다.");
+                if (msg.includes("마감일")) {
+                    pushBot(
+                        SCENARIOS.DEADLINE_EXPIRED(deadlineInfo?.deadline ?? "마감")
+                    );
+                } else {
+                    pushBot({ message: `자동 검토 실패: ${msg}` });
+                }
+            }
+        },
+        [selectedDocType, deadlineInfo, pushUser, pushBot]
+    );
+
+    return { chatHistory, handleUserInput, handleFileUpload };
 }
