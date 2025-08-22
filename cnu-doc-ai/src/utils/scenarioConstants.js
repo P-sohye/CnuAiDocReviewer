@@ -84,12 +84,10 @@ export const SCENARIOS = {
     BOT_FEEDBACK_PASS: {
         message: "자동 검토 통과, 관리자 검토 대기",
     },
-    BOT_FEEDBACK_FAIL: (failedItems) => {
-        const reason = (failedItems ?? [])
-            .map(i => `${i.label}: ${i.message}`)
-            .join("; ");
-        return { message: `자동 검토 실패: ${reason || "사유 미기재"}` };
-    },
+    BOT_FEEDBACK_FAIL: (reason) => ({
+        message: `자동 검토 실패: ${reason || "사유 미기재"}\n수정 후 재제출하시겠습니까?`,
+        options: ["수정 후 재제출", "바로 제출"], // 재제출 버튼 추가
+    }),
 
     // ▶ 반려 후 재제출(리비전 없이 덮어쓰기)
     RESUBMIT_PROMPT: {

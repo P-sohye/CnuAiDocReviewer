@@ -1,7 +1,6 @@
 // src/pages/AdminMain.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './AdminMain.module.css';
-
 import useDepartments, { formatDeptLabel } from '../../hooks/useDepartments';
 import {
     listAdminQueue,
@@ -9,7 +8,9 @@ import {
     getDeadlineByDepartment,
 } from '../../api/api';
 
-// 날짜 포맷터
+// ---- 유틸/상수 --------------------------------------------------
+const STATUSES_FOR_NEW = ['SUBMITTED', 'NEEDS_FIX','BOT_REVIEW']; // 신규 제출 정의
+
 const fmtNowKST = () =>
     new Date().toLocaleString('ko-KR', {
         year: 'numeric',
@@ -21,7 +22,6 @@ const fmtNowKST = () =>
         hour12: false,
     }) + ' 기준';
 
-// 안전한 날짜 비교용(YYYY-MM-DD → Date)
 const toDate = (ymd) => {
     if (!ymd) return null;
     const [y, m, d] = ymd.split('-').map(Number);
@@ -29,109 +29,137 @@ const toDate = (ymd) => {
     return new Date(y, m - 1, d);
 };
 
-const AdminMain = () => {
-    const timestamp = fmtNowKST();
+const parseTotalCount = (res) => {
+    if (!res) return 0;
+    if (Array.isArray(res)) return res.length;
+    if (typeof res.totalElements === 'number') return res.totalElements;
+    if (typeof res.total === 'number') return res.total;
+    if (typeof res.count === 'number') return res.count;
+    if (Array.isArray(res.content)) return res.content.length;
+    return 0;
+};
 
-    // 부서 로드
+const calcDeadlineStatus = (deadlineYmd) => {
+    const d = toDate(deadlineYmd);
+    if (!d) return '기간 미설정';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return d >= today ? '진행 중' : '마감 지남';
+};
+
+// ---- 컴포넌트 ---------------------------------------------------
+const AdminMain = () => {
+    // "페이지 표시 시점" 기준으로 고정된 타임스탬프
+    const timestamp = useMemo(() => fmtNowKST(), []);
     const { departments, loading: deptLoading, error: deptError } = useDepartments();
 
-    const [loading, setLoading] = useState(true);
-    const [loadErr, setLoadErr] = useState(null);
-
-    // 상단 표 데이터: [{ departmentLabel, count }]
-    const [submissionStatus, setSubmissionStatus] = useState([]);
-
-    // 하단 표 데이터: [{ title, deadline, departmentLabel }]
-    const [submissionDeadlines, setSubmissionDeadlines] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [pageError, setPageError] = useState(null);
+    const [submissionStatus, setSubmissionStatus] = useState([]);    // [{ departmentLabel, count }]
+    const [submissionDeadlines, setSubmissionDeadlines] = useState([]); // [{ title, deadline, departmentLabel }]
+    const unmountedRef = useRef(false);
 
     useEffect(() => {
-        let mounted = true;
+        unmountedRef.current = false;
 
-        (async () => {
-            if (deptLoading) return;
+        const load = async () => {
+            // 부서 정보 로딩/에러 처리
+            if (deptLoading) {
+                setIsLoading(true);
+                return;
+            }
             if (deptError) {
-                setLoadErr(deptError);
-                setLoading(false);
+                setIsLoading(false);
+                setPageError(deptError);
                 return;
             }
             if (!departments || departments.length === 0) {
                 setSubmissionStatus([]);
                 setSubmissionDeadlines([]);
-                setLoading(false);
+                setIsLoading(false);
+                setPageError(null);
                 return;
             }
 
-            try {
-                setLoading(true);
-                setLoadErr(null);
+            setIsLoading(true);
+            setPageError(null);
 
-                // ── 1) 각 부서의 신규 제출 건수 (SUBMITTED, UNDER_REVIEW)
-                const statuses = ['SUBMITTED', 'UNDER_REVIEW'];
-                const statusPromises = departments.map(async (dept) => {
-                    try {
-                        const list = await listAdminQueue(Number(dept.id), statuses);
-                        return {
-                            departmentLabel: formatDeptLabel(dept),
-                            count: Array.isArray(list) ? list.length : 0,
-                        };
-                    } catch {
-                        return { departmentLabel: formatDeptLabel(dept), count: 0 };
-                    }
-                });
+            // ---- 1) 부서별 신규 제출 카운트 ----
+            const statusResults = await Promise.allSettled(
+                departments.map(async (dept) => {
+                    const res = await listAdminQueue(Number(dept.id), STATUSES_FOR_NEW);
+                    const count = parseTotalCount(res);
+                    return { departmentLabel: formatDeptLabel(dept), count };
+                })
+            );
 
-                // ── 2) 각 부서의 마감 목록(문서명+마감일) 취합
-                const deadlinePromises = departments.map(async (dept) => {
-                    try {
-                        const [docs, dls] = await Promise.all([
-                            getDocTypesByDepartment(Number(dept.id)),
-                            getDeadlineByDepartment(Number(dept.id)),
-                        ]);
-                        const dlMap = new Map((dls ?? []).map((d) => [d.docTypeId, d.deadline || '']));
-                        const rows = (docs ?? []).map((doc) => ({
-                            title: doc.title ?? doc.name ?? '',
-                            deadline: dlMap.get(doc.docTypeId ?? doc.id ?? doc.documentId) || '',
-                            departmentLabel: formatDeptLabel(dept),
-                        }));
-                        return rows;
-                    } catch {
-                        return [];
-                    }
-                });
+            const statusRows = [];
+            const statusErrors = [];
+            statusResults.forEach((r, idx) => {
+                const label = formatDeptLabel(departments[idx]);
+                if (r.status === 'fulfilled') {
+                    statusRows.push(r.value);
+                } else {
+                    statusErrors.push(`[${label}] 큐 조회 실패: ${r.reason?.message || String(r.reason)}`);
+                }
+            });
 
-                const statusRows = await Promise.all(statusPromises);
-                const deadlineRowsNested = await Promise.all(deadlinePromises);
+            // ---- 2) 부서별 서류/마감 취합 ----
+            const deadlineResults = await Promise.allSettled(
+                departments.map(async (dept) => {
+                    const [docs, dls] = await Promise.all([
+                        getDocTypesByDepartment(Number(dept.id)),
+                        getDeadlineByDepartment(Number(dept.id)),
+                    ]);
+                    const dlMap = new Map((dls || []).map((d) => [d.docTypeId, d.deadline || '']));
+                    return (docs || []).map((doc) => ({
+                        title: doc.title ?? doc.name ?? '',
+                        deadline: dlMap.get(doc.docTypeId ?? doc.id ?? doc.documentId) || '',
+                        departmentLabel: formatDeptLabel(dept),
+                    }));
+                })
+            );
 
-                if (!mounted) return;
+            const deadlineRows = [];
+            const deadlineErrors = [];
+            deadlineResults.forEach((r, idx) => {
+                const label = formatDeptLabel(departments[idx]);
+                if (r.status === 'fulfilled') {
+                    deadlineRows.push(...(r.value || []));
+                } else {
+                    deadlineErrors.push(`[${label}] 마감 데이터 조회 실패: ${r.reason?.message || String(r.reason)}`);
+                }
+            });
 
-                // 상단: 부서 순서는 hooks가 준 순서 유지
-                setSubmissionStatus(statusRows);
-
-                // 하단: 마감 있는 것만 모아 가까운 순으로 정렬
-                const flat = deadlineRowsNested.flat().filter((r) => r.deadline);
-                flat.sort((a, b) => {
+            // 마감 정렬 (가까운 순)
+            const flatDeadlines = deadlineRows
+                .filter((r) => r.deadline)
+                .sort((a, b) => {
                     const da = toDate(a.deadline);
                     const db = toDate(b.deadline);
-                    if (!da && !db) return 0;
-                    if (!da) return 1;
-                    if (!db) return -1;
-                    return da - db;
+                    return da && db ? da - db : da ? -1 : 1;
                 });
-                setSubmissionDeadlines(flat);
-            } catch (e) {
-                if (mounted) setLoadErr(e);
-            } finally {
-                if (mounted) setLoading(false);
-            }
-        })();
+
+            if (unmountedRef.current) return;
+
+            setSubmissionStatus(statusRows);
+            setSubmissionDeadlines(flatDeadlines);
+
+            // 부분 에러를 묶어서 화면에 보여줌 (전체를 막지 않음)
+            const mergedErrors = [...statusErrors, ...deadlineErrors];
+            setPageError(mergedErrors.length ? mergedErrors.join('\n') : null);
+            setIsLoading(false);
+        };
+
+        load();
 
         return () => {
-            mounted = false;
+            unmountedRef.current = true;
         };
     }, [departments, deptLoading, deptError]);
 
-    const hasDeadlines = submissionDeadlines.length > 0;
-
-    if (deptLoading || loading) {
+    // ---- 렌더링 ----------------------------------------------------
+    if (isLoading) {
         return (
             <div className={styles.wrapper}>
                 <div className={styles.container}>
@@ -141,84 +169,75 @@ const AdminMain = () => {
         );
     }
 
-    if (loadErr) {
-        return (
-            <div className={styles.wrapper}>
-                <div className={styles.container}>
-                    <div className={styles.error}>데이터 로드 실패: {String(loadErr)}</div>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className={styles.wrapper}>
             <div className={styles.container}>
-                {/* 상단: 서류 제출 현황 */}
-                <h2 className={styles.title}>
-                    서류 제출 현황 <span className={styles.timestamp}>{timestamp}</span>
-                </h2>
-                <table className={styles.table}>
-                    <thead>
-                    <tr>
-                        <th>행정부서</th>
-                        <th className={styles.rightAlign}>신규 제출 서류</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {submissionStatus.map((item, idx) => (
-                        <tr key={idx}>
-                            <td>{item.departmentLabel}</td>
-                            <td className={styles.rightAlign}>{item.count}건</td>
-                        </tr>
-                    ))}
-                    {submissionStatus.length === 0 && (
-                        <tr>
-                            <td colSpan={2} className={styles.empty}>표시할 항목이 없습니다.</td>
-                        </tr>
-                    )}
-                    </tbody>
-                </table>
+                {pageError && (
+                    <div className={styles.error}>
+                        데이터 일부 로드 실패:
+                        <pre style={{ whiteSpace: 'pre-wrap', margin: '8px 0 0' }}>{String(pageError)}</pre>
+                    </div>
+                )}
 
-                {/* 하단: 서류 제출 마감 */}
-                <h2 className={styles.title}>
-                    서류 제출 마감 <span className={styles.timestamp}>{timestamp}</span>
-                </h2>
-                <table className={styles.table}>
-                    <thead>
-                    <tr>
-                        <th>서류 제목</th>
-                        <th>마감 기한</th>
-                        <th>행정부서</th>
-                        <th className={styles.rightAlign}>상태</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {hasDeadlines ? (
-                        submissionDeadlines.map((item, idx) => (
-                            <tr key={idx}>
-                                <td>{item.title}</td>
-                                <td>{item.deadline}</td>
-                                <td>{item.departmentLabel}</td>
-                                <td className={styles.rightAlign}>
-                                    {/* 오늘 이후면 '진행 중', 오늘 이전이면 '마감 지남' */}
-                                    {(() => {
-                                        const d = toDate(item.deadline);
-                                        const today = new Date();
-                                        today.setHours(0,0,0,0);
-                                        if (!d) return '기간 미설정';
-                                        return d >= today ? '진행 중' : '마감 지남';
-                                    })()}
-                                </td>
-                            </tr>
-                        ))
-                    ) : (
+                <section>
+                    <h2 className={styles.title}>
+                        서류 제출 현황 <span className={styles.timestamp}>{timestamp}</span>
+                    </h2>
+                    <table className={styles.table}>
+                        <thead>
                         <tr>
-                            <td colSpan={4} className={styles.empty}>표시할 항목이 없습니다.</td>
+                            <th>행정부서</th>
+                            <th className={styles.rightAlign}>신규 제출 서류</th>
                         </tr>
-                    )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                        {submissionStatus.length > 0 ? (
+                            submissionStatus.map((item, idx) => (
+                                <tr key={idx}>
+                                    <td>{item.departmentLabel}</td>
+                                    <td className={styles.rightAlign}>{item.count}건</td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={2} className={styles.empty}>표시할 항목이 없습니다.</td>
+                            </tr>
+                        )}
+                        </tbody>
+                    </table>
+                </section>
+
+                <section>
+                    <h2 className={styles.title}>
+                        서류 제출 마감 <span className={styles.timestamp}>{timestamp}</span>
+                    </h2>
+                    <table className={styles.table}>
+                        <thead>
+                        <tr>
+                            <th>서류 제목</th>
+                            <th>마감 기한</th>
+                            <th>행정부서</th>
+                            <th className={styles.rightAlign}>상태</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {submissionDeadlines.length > 0 ? (
+                            submissionDeadlines.map((item, idx) => (
+                                <tr key={idx}>
+                                    <td>{item.title}</td>
+                                    <td>{item.deadline}</td>
+                                    <td>{item.departmentLabel}</td>
+                                    <td className={styles.rightAlign}>{calcDeadlineStatus(item.deadline)}</td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={4} className={styles.empty}>표시할 항목이 없습니다.</td>
+                            </tr>
+                        )}
+                        </tbody>
+                    </table>
+                </section>
             </div>
         </div>
     );

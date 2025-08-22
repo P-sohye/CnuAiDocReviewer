@@ -13,7 +13,9 @@ import {
 } from "../api/api";
 import { SCENARIOS, STATUS } from "../utils/scenarioConstants";
 
-/** 화면 라벨 */
+/* =========================
+ * 상수/유틸
+ * ========================= */
 const statusLabel = {
     DRAFT: "임시저장",
     BOT_REVIEW: "챗봇 검사",
@@ -24,8 +26,8 @@ const statusLabel = {
     REJECTED: "반려 처리",
 };
 
-/** 공통 유틸 */
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const formatDate = (isoStr) => {
     if (!isoStr) return "";
     const d = new Date(isoStr);
@@ -37,7 +39,7 @@ const formatDate = (isoStr) => {
     const mi = String(d.getMinutes()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 };
-/** 정규화 */
+
 const normDept = (d) => ({ id: d?.id, name: d?.name, leftLabel: null });
 const normDocType = (t) => ({ id: t?.docTypeId, name: t?.title });
 const normRequiredField = (it, idx) => ({
@@ -71,13 +73,20 @@ async function fetchReviewReasons(submissionId) {
     return [];
 }
 
-/** 상태 폴링: BOT_REVIEW는 완료 아님! */
+/**
+ * 상태 폴링(최대 24시간)
+ * - BOT_REVIEW는 완료 상태 아님
+ * - 네트워크 오류는 백오프 재시도
+ * - 5분마다 onProgress 호출
+ */
 async function pollUntilDone(getSummaryFn, submissionId, opts) {
     const {
-        initialDelayMs = 5000,
-        stepMs = 5000,
-        maxDelayMs = 30000,
-        timeoutMs = 8 * 60 * 1000, // 8분
+        initialDelayMs = 2000,
+        stepMs = 3000,
+        maxDelayMs = 9000000,
+        timeoutMs = 24 * 60 * 60 * 1000, // 24h
+        onProgress = null, // (elapsedMs, status) => void
+        isCancelled = () => false, // 외부에서 취소 지원
     } = opts || {};
 
     const DONE = new Set([
@@ -86,35 +95,58 @@ async function pollUntilDone(getSummaryFn, submissionId, opts) {
         STATUS.SUBMITTED,
         STATUS.UNDER_REVIEW,
         STATUS.APPROVED,
-    ]); // ❌ BOT_REVIEW 제외
+    ]);
 
     let delay = initialDelayMs;
     let elapsed = 0;
-    let summary = await getSummaryFn(submissionId);
 
-    // 이미 완료 상태면 즉시 반환
-    if (summary?.status && DONE.has(summary.status)) return summary;
+    // 첫 조회
+    let summary = null;
+    try {
+        summary = await getSummaryFn(submissionId);
+    } catch (_) {
+        // 첫 호출 실패 시에도 계속 진행
+    }
+    let lastStatus = summary?.status || null;
+    if (lastStatus && DONE.has(lastStatus)) return summary;
 
-    while (elapsed < timeoutMs) {
+    // 5분마다 한 번만 진행 메시지
+    let lastProgressAt = Date.now();
+
+    while (elapsed < timeoutMs && !isCancelled()) {
         await sleep(delay);
         elapsed += delay;
-
-        // 점차 대기 증가 (최대 maxDelayMs)
         delay = Math.min(delay + stepMs, maxDelayMs);
 
-        summary = await getSummaryFn(submissionId);
-        const st = summary?.status;
+        // 네트워크 오류 시 백오프 재시도
+        let attempt = 0;
+        while (attempt < 3) {
+            try {
+                summary = await getSummaryFn(submissionId);
+                break; // 성공
+            } catch (e) {
+                attempt += 1;
+                if (attempt >= 3) throw e; // 3회 연속 실패면 밖으로
+                await sleep(1000 * attempt); // 1s, 2s 백오프
+            }
+        }
 
-        // 완료 상태면 탈출
-        if (DONE.has(st)) return summary;
+        lastStatus = summary?.status;
+        if (lastStatus && DONE.has(lastStatus)) return summary;
 
-        // BOT_REVIEW면 계속 대기 (타임아웃까지)
+        const now = Date.now();
+        if (onProgress && now - lastProgressAt >= 5 * 60 * 1000) {
+            onProgress(elapsed, lastStatus || null);
+            lastProgressAt = now;
+        }
     }
 
-    // 타임아웃: 마지막 상태 반환 (대개 BOT_REVIEW일 것)
-    return summary ?? null;
+    return summary ?? null; // 타임아웃 시 마지막 스냅샷
 }
 
+/* =========================
+ * 메인 훅
+ * ========================= */
 export default function useChatScenario() {
     const [chatHistory, setChatHistory] = useState([]);
     const [departments, setDepartments] = useState([]);
@@ -122,7 +154,10 @@ export default function useChatScenario() {
     const [selectedDeptId, setSelectedDeptId] = useState(null);
     const [selectedDocType, setSelectedDocType] = useState(null); // { id, name }
     const [deadlineInfo, setDeadlineInfo] = useState(null); // {deadline:string}|null
+
     const bootstrapped = useRef(false);
+    const cancelledRef = useRef(false);       // 언마운트/재업로드 시 폴링 취소
+    const progressMinuteRef = useRef(0);      // 진행 메시지 분 단위 중복 방지
 
     const pushBot = useCallback((msg) => {
         setChatHistory((h) => [...h, { from: "bot", ...msg }]);
@@ -149,7 +184,7 @@ export default function useChatScenario() {
         );
     }, [departments, pushBot]);
 
-    // 초기: 인트로만
+    // 초기 로딩
     useEffect(() => {
         if (bootstrapped.current) return;
         bootstrapped.current = true;
@@ -157,19 +192,18 @@ export default function useChatScenario() {
         (async () => {
             try {
                 const deptsRes = await getStudentDepartments();
-                const normDepts = (deptsRes || [])
-                    .map(normDept)
-                    .filter((d) => d.id && d.name);
+                const normDepts = (deptsRes || []).map(normDept).filter((d) => d.id && d.name);
                 setDepartments(normDepts);
-                pushBot({
-                    message: SCENARIOS.INIT.message,
-                    options: SCENARIOS.INIT.options,
-                });
+                pushBot({ message: SCENARIOS.INIT.message, options: SCENARIOS.INIT.options });
             } catch (e) {
                 console.error("[INIT] departments load error:", e);
                 pushBot(SCENARIOS.SERVER_ERROR);
             }
         })();
+
+        return () => {
+            cancelledRef.current = true; // 언마운트 시 모든 폴링 중단
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -179,12 +213,12 @@ export default function useChatScenario() {
             const text = String(raw).trim();
             pushUser(text);
 
-            // 공통 메뉴 처리 -------------------------------------------------
+            // 공통 메뉴
             if (text === "서류 제출") {
                 resetToDeptSelect();
                 return;
             }
-            if (text === "서류 제출 현황") {
+            if (text === "서류 제출 현황" || text === "뒤로가기") {
                 try {
                     const rows = await listMySubmissions({ limit: 10 });
                     if (!rows || rows.length === 0) {
@@ -192,21 +226,15 @@ export default function useChatScenario() {
                     } else {
                         const lines = rows.map((r) => {
                             const status = statusLabel[r.status] || r.status;
-                            return `- ${status} | ${r.title || "(제목 없음)"} | ${formatDate(
-                                r.submittedAt
-                            )}`;
+                            return `- ${status} | ${r.title || "(제목 없음)"} | ${formatDate(r.submittedAt)}`;
                         });
                         pushBot({ message: `최근 제출 내역:\n${lines.join("\n")}` });
                     }
                 } catch {
-                    pushBot({
-                        message: "제출 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
-                    });
+                    pushBot({ message: "제출 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요." });
                 }
                 return;
             }
-
-            // ▶ 추가: 마감 화면에서의 액션
             if (text === "다른 서류 제출하기") {
                 resetToDeptSelect();
                 return;
@@ -216,7 +244,7 @@ export default function useChatScenario() {
                 return;
             }
 
-            // 부서 선택 -----------------------------------------------------
+            // 부서 선택
             const dept = (departments || []).find(
                 (d) =>
                     d.name === text ||
@@ -224,14 +252,10 @@ export default function useChatScenario() {
             );
             if (dept) {
                 setSelectedDeptId(dept.id);
-                pushBot({
-                    message: `"${dept.name}" 부서 선택됨. 제출하실 서류 유형을 선택해주세요.`,
-                });
+                pushBot({ message: `"${dept.name}" 부서 선택됨. 제출하실 서류 유형을 선택해주세요.` });
                 try {
                     const typesRes = await getDocTypesByDepartmentPublic(dept.id);
-                    const normTypes = (typesRes || [])
-                        .map(normDocType)
-                        .filter((t) => t.id && t.name);
+                    const normTypes = (typesRes || []).map(normDocType).filter((t) => t.id && t.name);
                     setDocTypes(normTypes);
                     pushBot(SCENARIOS.SELECT_TYPE(normTypes));
                 } catch (e) {
@@ -241,7 +265,7 @@ export default function useChatScenario() {
                 return;
             }
 
-            // 문서 유형 선택 -------------------------------------------------
+            // 문서 유형 선택
             const dt = (docTypes || []).find((t) => t.name === text);
             if (dt) {
                 setSelectedDocType({ id: dt.id, name: dt.name });
@@ -255,7 +279,7 @@ export default function useChatScenario() {
                     console.warn("[required-fields] load failed", e);
                 }
 
-                // 2) 마감일 체크
+                // 2) 마감일
                 try {
                     const dl = await getDeadline(dt.id); // {deadline: "..."} | string | null
                     const deadlineStr = typeof dl === "string" ? dl : dl?.deadline;
@@ -269,7 +293,7 @@ export default function useChatScenario() {
                         pushBot(SCENARIOS.DEADLINE_VALID(deadlineStr));
                     }
                 } catch (e) {
-                    console.warn("[deadline] fetch failed (무시하고 진행)", e);
+                    console.warn("[deadline] fetch failed (ignored)", e);
                 }
 
                 // 3) 업로드 프롬프트
@@ -292,6 +316,10 @@ export default function useChatScenario() {
                 return;
             }
 
+            // 기존 폴링 취소 플래그 초기화
+            cancelledRef.current = false;
+            progressMinuteRef.current = 0;
+
             // 업로드 진행
             pushUser(`📎 ${file.name}`);
             pushBot(SCENARIOS.FILE_UPLOADED_PROCESSING);
@@ -306,17 +334,29 @@ export default function useChatScenario() {
                 const submissionId = created?.submissionId;
                 if (!submissionId) throw new Error("submissionId 없음");
 
-                // 상태 폴링 (8분 타임아웃, 5s → +5s 증가, 최대 30s)
+                // 24시간 폴링 + 5분마다 진행 메시지
                 const summary = await pollUntilDone(getSubmissionSummary, submissionId, {
-                    initialDelayMs: 5000,
-                    stepMs: 5000,
-                    maxDelayMs: 30000,
-                    timeoutMs: 8 * 60 * 1000,
+                    initialDelayMs: 2000,
+                    stepMs: 3000,
+                    // maxDelayMs: 30000,
+                    timeoutMs: 24 * 60 * 60 * 1000,
+                    isCancelled: () => cancelledRef.current,
+                    onProgress: (elapsedMs, status) => {
+                        const min = Math.floor(elapsedMs / 60000);
+                        if (min > progressMinuteRef.current && min % 5 === 0) {
+                            progressMinuteRef.current = min;
+                            const label =
+                                status === STATUS.BOT_REVIEW ? "OCR 검사 중" : status || "대기 중";
+                            pushBot({
+                                message: `처리 중입니다 (${min}분 경과, 현재 상태: ${label}).\n조금만 더 기다려 주세요!`,
+                            });
+                        }
+                    },
                 });
 
                 if (!summary) throw new Error("결과 조회 실패");
 
-                // 타임아웃 또는 여전히 BOT_REVIEW 인 경우
+                // 여전히 BOT_REVIEW면 안내 후 종료
                 if (summary.status === STATUS.BOT_REVIEW) {
                     pushBot({
                         message:
@@ -325,27 +365,26 @@ export default function useChatScenario() {
                     return;
                 }
 
-                // 결과 문구
-                if (
-                    summary.status === STATUS.NEEDS_FIX ||
-                    summary.status === STATUS.REJECTED
-                ) {
+                // ⭐ 결과 문구: NEEDS_FIX와 REJECTED를 분리 처리
+                if (summary.status === STATUS.NEEDS_FIX) {
                     const reasonLines = await fetchReviewReasons(submissionId);
-                    const reasonText = reasonLines.length
-                        ? `\n- ${reasonLines.join("\n- ")}`
-                        : "";
-                    pushBot({
-                        message: `자동 검토 실패: ${reasonText || "(사유 미기재)"}`,
-                    });
+                    const reasonText = reasonLines.length ? `\n- ${reasonLines.join("\n- ")}` : "(사유 미기재)";
+                    pushBot(SCENARIOS.BOT_FEEDBACK_FAIL(reasonText));
+                } else if (summary.status === STATUS.REJECTED) {
+                    // 관리자 반려 상태인 경우, 반려 사유를 가져옵니다.
+                    const rejectionDetail = await getSubmissionSummary(submissionId);
+                    const memo = rejectionDetail?.admin?.decisionMemo || "반려 사유가 없습니다.";
+                    const reasons = rejectionDetail?.admin?.fieldNotes?.map(n => n.comment) || [];
+                    if (memo) reasons.push(memo);
+
+                    pushBot(SCENARIOS.ADMIN_REJECTION_REASON(reasons));
                 } else {
-                    pushBot({ message: "자동 검토 통과, 관리자 검토 대기" });
+                    pushBot(SCENARIOS.BOT_FEEDBACK_PASS);
                 }
             } catch (err) {
                 const msg = pickErrorMessage(err, "업로드에 실패했습니다.");
                 if (msg.includes("마감일")) {
-                    pushBot(
-                        SCENARIOS.DEADLINE_EXPIRED(deadlineInfo?.deadline ?? "마감")
-                    );
+                    pushBot(SCENARIOS.DEADLINE_EXPIRED(deadlineInfo?.deadline ?? "마감"));
                 } else {
                     pushBot({ message: `자동 검토 실패: ${msg}` });
                 }

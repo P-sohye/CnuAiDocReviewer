@@ -123,14 +123,21 @@ export const deleteDeadline = async (docTypeId) => {
     await api.delete(`/api/admin/deadline/${docTypeId}`);
 };
 /* 관리자 제출 큐/결정 */
-export async function listAdminQueue(departmentId, statuses) {
-    const deptNum = Number(departmentId);
-    if (Number.isNaN(deptNum)) throw new Error('departmentId is not a valid number');
-    const params = { departmentId: deptNum };
-    if (Array.isArray(statuses) && statuses.length > 0) params.statuses = statuses;
-    const res = await api.get('/api/admin/submissions', { params });
-    return res.data;
+// api.js (예시)
+// src/api/api.js
+export async function listAdminQueue(deptId, statuses = []) {
+    const url = '/api/admin/submissions';
+    const params = new URLSearchParams();
+    params.set('departmentId', String(deptId));
+    // ✅ brackets 없이 반복 파라미터로 직렬화
+    statuses.forEach(s => params.append('statuses', s));
+
+    const { data } = await api.get(`${url}?${params.toString()}`, {
+        headers: { Accept: 'application/json' },
+    });
+    return data;
 }
+
 export async function getSubmissionDetail(id) {
     const subId = Number(id);
     if (Number.isNaN(subId)) throw new Error('submission id is not a valid number');
@@ -163,7 +170,7 @@ export const getSubmissionSummary = async (submissionId) => {
 };
 
 /* ───────── 공통 설정 ───────── */
-api.defaults.timeout = 30000;
+api.defaults.timeout = 90000000;
 api.interceptors.response.use(
     (res) => res,
     (err) => Promise.reject(err)
